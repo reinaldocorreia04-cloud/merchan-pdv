@@ -1,0 +1,9 @@
+streamlit
+streamlit-autorefresh
+requests
+pandas
+folium
+geopy
+openpyxl
+reportlab
+pillow
