@@ -25,27 +25,15 @@ from reportlab.pdfgen import canvas
 import os
 
 
-
 # =========================================================
 # 2. CONFIGURAÇÕES DO KOBO E ARQUIVOS LOCAIS
 # =========================================================
 
-# Troque pelo seu token real do Kobo.
-TOKEN = "1047f60f5ac628fc1362ed35a1d4a166e07e4be1"
-
-# Asset ID do formulário de visitas dos promotores.
+TOKEN = st.secrets["KOBO_TOKEN"]
 ASSET_ID = "aQVpdCVPTPEkJxiWie4CqN"
-
-# URL da API do Kobo.
 URL = f"https://kf.kobotoolbox.org/api/v2/assets/{ASSET_ID}/data.json"
-
-# Cabeçalho de autenticação.
 HEADERS = {"Authorization": f"Token {TOKEN}"}
-
-# Arquivo de cadastro mestre de lojas.
 ARQUIVO_LOJAS = "lojas.csv"
-
-# Logo usada no topo do painel.
 LOGO = "logo_merchan_pdv.jpeg.jpeg"
 
 
@@ -70,7 +58,7 @@ st.set_page_config(
 # Atualização automática a cada 30 minutos.
 st_autorefresh(interval=1800000, key="refresh")
 
-# Botão para atualização manual
+# Botão para atualização manual.
 if st.button("🔄 Atualizar agora"):
     st.cache_data.clear()
     st.rerun()
@@ -234,8 +222,11 @@ def carregar_lojas():
         return pd.DataFrame()
 
     colunas_numericas = [
-        "latitude_loja", "longitude_loja", "raio_metros",
-        "frequencia_mensal_prevista", "intervalo_minimo_retorno_dias"
+        "latitude_loja",
+        "longitude_loja",
+        "raio_metros",
+        "frequencia_mensal_prevista",
+        "intervalo_minimo_retorno_dias"
     ]
 
     for coluna in colunas_numericas:
@@ -243,247 +234,12 @@ def carregar_lojas():
             df_lojas[coluna] = pd.to_numeric(df_lojas[coluna], errors="coerce")
 
     if "status" in df_lojas.columns:
-        df_lojas = df_lojas[df_lojas["status"].astype(str).str.lower() == "ativo"]
+        df_lojas = df_lojas[
+            df_lojas["status"].astype(str).str.lower() == "ativo"
+        ]
 
     return df_lojas
 
-# =========================================================
-# FUNÇÕES PARA RELATÓRIO PDF
-# =========================================================
-
-def obter_valor_linha(row, campos_possiveis):
-    """
-    Busca o primeiro campo existente e preenchido dentro da linha.
-    Útil porque o nome técnico do Kobo pode mudar.
-    """
-
-    for campo in campos_possiveis:
-        valor = row.get(campo, "")
-
-        if pd.notna(valor) and str(valor).strip() != "":
-            return valor
-
-    return ""
-
-
-def baixar_imagem_bytes(url):
-    """
-    Baixa imagem protegida do Kobo em bytes para inserir no PDF.
-    """
-
-    if not url:
-        return None
-
-    try:
-        resposta = requests.get(url, headers=HEADERS)
-
-        if resposta.status_code == 200:
-            return BytesIO(resposta.content)
-
-        return None
-
-    except Exception:
-        return None
-
-
-def desenhar_imagem_pdf(c, url, x, y, largura, altura):
-    """
-    Desenha imagem no PDF, mantendo tratamento para erro.
-    """
-
-    imagem_bytes = baixar_imagem_bytes(url)
-
-    if imagem_bytes is None:
-        c.setFont("Helvetica", 8)
-        c.drawString(x, y + altura / 2, "Imagem nao disponivel")
-        return
-
-    try:
-        img = ImageReader(imagem_bytes)
-        c.drawImage(
-            img,
-            x,
-            y,
-            width=largura,
-            height=altura,
-            preserveAspectRatio=True,
-            anchor="c"
-        )
-
-    except Exception:
-        c.setFont("Helvetica", 8)
-        c.drawString(x, y + altura / 2, "Erro ao carregar imagem")
-
-
-def gerar_pdf_visitas(df_relatorio):
-    """
-    Gera PDF com 1 visita por página.
-    Cada página contém:
-    - cabeçalho com logo;
-    - dados da coleta;
-    - fotos da fachada, antes e depois.
-    """
-
-    buffer = BytesIO()
-
-    c = canvas.Canvas(buffer, pagesize=A4)
-
-    largura_pagina, altura_pagina = A4
-
-    for _, row in df_relatorio.iterrows():
-
-        # -------------------------------
-        # DADOS PRINCIPAIS
-        # -------------------------------
-
-        loja_oficial = row.get("nome_loja_oficial", "")
-
-        data_visita = formatar_data(row.get("today"))
-
-        latitude = row.get("latitude_visita", "")
-        longitude = row.get("longitude_visita", "")
-
-        if pd.notna(latitude):
-            latitude = round(float(latitude), 6)
-
-        if pd.notna(longitude):
-            longitude = round(float(longitude), 6)
-
-        loja_abastecida = nome_bonito(row.get(CAMPO_STATUS, ""))
-
-        nota = obter_valor_linha(
-            row,
-            [
-                "txt_motivo_nao_abastecida",
-                "motivo_nao_abastecida",
-                "txt_observacoes",
-                "observacao",
-                "observacoes",
-                "ANOTACOES_GERAIS"
-            ]
-        )
-
-        fachada, antes, depois = extrair_fotos(row)
-
-        # -------------------------------
-        # CABEÇALHO
-        # -------------------------------
-
-        margem_x = 2 * cm
-        y = altura_pagina - 2 * cm
-
-        if os.path.exists(LOGO):
-            try:
-                c.drawImage(
-                    LOGO,
-                    margem_x,
-                    y - 1.3 * cm,
-                    width=3.2 * cm,
-                    height=1.3 * cm,
-                    preserveAspectRatio=True,
-                    mask="auto"
-                )
-            except Exception:
-                pass
-
-        c.setFillColor(colors.HexColor("#1E2A78"))
-        c.setFont("Helvetica-Bold", 16)
-        c.drawCentredString(
-            largura_pagina / 2,
-            y - 0.4 * cm,
-            "Ficha de Visita de Loja"
-        )
-
-        c.setStrokeColor(colors.HexColor("#1E2A78"))
-        c.line(margem_x, y - 1.7 * cm, largura_pagina - margem_x, y - 1.7 * cm)
-
-        # -------------------------------
-        # DADOS DE COLETA
-        # -------------------------------
-
-        y = y - 2.5 * cm
-
-        c.setFillColor(colors.black)
-        c.setFont("Helvetica-Bold", 12)
-        c.drawString(margem_x, y, "Dados de Coleta:")
-
-        y -= 0.7 * cm
-
-        c.setFont("Helvetica", 10)
-
-        dados = [
-            ("Data da Visita", data_visita),
-            ("Loja", loja_oficial),
-            ("Latitude", str(latitude)),
-            ("Longitude", str(longitude)),
-            ("Loja Abastecida", loja_abastecida),
-            ("Nota", str(nota))
-        ]
-
-        for rotulo, valor in dados:
-            c.setFont("Helvetica-Bold", 9)
-            c.drawString(margem_x, y, f"{rotulo}:")
-            c.setFont("Helvetica", 9)
-            c.drawString(margem_x + 4 * cm, y, valor[:95])
-            y -= 0.55 * cm
-
-        # -------------------------------
-        # REGISTROS FOTOGRÁFICOS
-        # -------------------------------
-
-        y -= 0.4 * cm
-
-        c.setFont("Helvetica-Bold", 12)
-        c.drawString(margem_x, y, "Registros Fotograficos:")
-
-        y -= 0.8 * cm
-
-        largura_foto = 15.5 * cm
-        altura_foto = 4.4 * cm
-
-        fotos = [
-            ("Foto da fachada", fachada),
-            ("Foto antes do abastecimento", antes),
-            ("Foto depois do abastecimento", depois)
-        ]
-
-        for titulo, url in fotos:
-
-            c.setFont("Helvetica-Bold", 9)
-            c.drawString(margem_x, y, titulo)
-
-            y -= 0.25 * cm
-
-            desenhar_imagem_pdf(
-                c,
-                url,
-                margem_x,
-                y - altura_foto,
-                largura_foto,
-                altura_foto
-            )
-
-            y -= altura_foto + 0.6 * cm
-
-        # -------------------------------
-        # RODAPÉ
-        # -------------------------------
-
-        c.setFont("Helvetica", 8)
-        c.setFillColor(colors.gray)
-        c.drawCentredString(
-            largura_pagina / 2,
-            1 * cm,
-            "Relatorio gerado automaticamente pelo Painel de Gestao - Merchan PDV"
-        )
-
-        c.showPage()
-
-    c.save()
-
-    buffer.seek(0)
-
-    return buffer.getvalue()
 
 # =========================================================
 # 8. FUNÇÕES UTILITÁRIAS
@@ -497,9 +253,12 @@ def imagem_base64(url):
 
     try:
         resposta = requests.get(url, headers=HEADERS)
+
         if resposta.status_code == 200:
             return base64.b64encode(resposta.content).decode("utf-8")
+
         return None
+
     except Exception:
         return None
 
@@ -508,6 +267,7 @@ def nome_bonito(valor):
     """Converte texto técnico em texto amigável."""
     if pd.isna(valor):
         return ""
+
     return str(valor).replace("_", " ").title()
 
 
@@ -524,10 +284,12 @@ def obter_lat_long(row):
             return float(partes[0]), float(partes[1])
 
         geo_padrao = row.get("_geolocation")
+
         if isinstance(geo_padrao, list):
             return float(geo_padrao[0]), float(geo_padrao[1])
 
         return None, None
+
     except Exception:
         return None, None
 
@@ -564,6 +326,7 @@ def img_html(url, largura=120):
         return ""
 
     img64 = imagem_base64(url)
+
     if not img64:
         return ""
 
@@ -576,8 +339,10 @@ def img_html(url, largura=120):
 def gerar_excel(df_exportar):
     """Gera arquivo Excel em memória para download."""
     output = BytesIO()
+
     with pd.ExcelWriter(output, engine="openpyxl") as writer:
         df_exportar.to_excel(writer, index=False, sheet_name="Visitas")
+
     return output.getvalue()
 
 
@@ -585,6 +350,7 @@ def formatar_data(valor):
     """Formata data em dd/mm/aaaa."""
     if pd.isna(valor):
         return ""
+
     return pd.to_datetime(valor).strftime("%d/%m/%Y")
 
 
@@ -592,6 +358,7 @@ def formatar_hora(valor):
     """Formata hora em HH:MM."""
     if pd.isna(valor):
         return ""
+
     return pd.to_datetime(valor).strftime("%H:%M")
 
 
@@ -608,15 +375,197 @@ def calcular_duracao(inicio, fim):
 
     horas = minutos // 60
     mins = minutos % 60
+
     return f"{horas:02d}:{mins:02d}"
 
 
 # =========================================================
-# 9. FUNÇÕES DE GEOLOCALIZAÇÃO / ANTIFRAUDE
+# 9. FUNÇÕES PARA RELATÓRIO PDF
+# =========================================================
+
+def obter_valor_linha(row, campos_possiveis):
+    for campo in campos_possiveis:
+        valor = row.get(campo, "")
+
+        if pd.notna(valor) and str(valor).strip() != "":
+            return valor
+
+    return ""
+
+
+def baixar_imagem_bytes(url):
+    if not url:
+        return None
+
+    try:
+        resposta = requests.get(url, headers=HEADERS)
+
+        if resposta.status_code == 200:
+            return BytesIO(resposta.content)
+
+        return None
+
+    except Exception:
+        return None
+
+
+def desenhar_imagem_pdf(c, url, x, y, largura, altura):
+    imagem_bytes = baixar_imagem_bytes(url)
+
+    if imagem_bytes is None:
+        c.setFont("Helvetica", 8)
+        c.drawString(x, y + altura / 2, "Imagem nao disponivel")
+        return
+
+    try:
+        img = ImageReader(imagem_bytes)
+
+        c.drawImage(
+            img,
+            x,
+            y,
+            width=largura,
+            height=altura,
+            preserveAspectRatio=True,
+            anchor="c"
+        )
+
+    except Exception:
+        c.setFont("Helvetica", 8)
+        c.drawString(x, y + altura / 2, "Erro ao carregar imagem")
+
+
+def gerar_pdf_visitas(df_relatorio):
+    buffer = BytesIO()
+    c = canvas.Canvas(buffer, pagesize=A4)
+
+    largura_pagina, altura_pagina = A4
+
+    for _, row in df_relatorio.iterrows():
+
+        loja_oficial = row.get("nome_loja_oficial", "")
+        data_visita = formatar_data(row.get("start"))
+
+        latitude = row.get("latitude_visita", "")
+        longitude = row.get("longitude_visita", "")
+
+        if pd.notna(latitude):
+            latitude = round(float(latitude), 6)
+
+        if pd.notna(longitude):
+            longitude = round(float(longitude), 6)
+
+        loja_abastecida = nome_bonito(row.get(CAMPO_STATUS, ""))
+
+        nota = obter_valor_linha(
+            row,
+            [
+                "txt_motivo_nao_abastecida",
+                "motivo_nao_abastecida",
+                "txt_observacoes",
+                "observacao",
+                "observacoes",
+                "ANOTACOES_GERAIS"
+            ]
+        )
+
+        fachada, antes, depois = extrair_fotos(row)
+
+        margem_x = 2 * cm
+        y = altura_pagina - 2 * cm
+
+        if os.path.exists(LOGO):
+            try:
+                c.drawImage(
+                    LOGO,
+                    margem_x,
+                    y - 1.3 * cm,
+                    width=3.2 * cm,
+                    height=1.3 * cm,
+                    preserveAspectRatio=True,
+                    mask="auto"
+                )
+            except Exception:
+                pass
+
+        c.setFillColor(colors.HexColor("#1E2A78"))
+        c.setFont("Helvetica-Bold", 16)
+        c.drawCentredString(largura_pagina / 2, y - 0.4 * cm, "Ficha de Visita de Loja")
+
+        c.setStrokeColor(colors.HexColor("#1E2A78"))
+        c.line(margem_x, y - 1.7 * cm, largura_pagina - margem_x, y - 1.7 * cm)
+
+        y = y - 2.5 * cm
+
+        c.setFillColor(colors.black)
+        c.setFont("Helvetica-Bold", 12)
+        c.drawString(margem_x, y, "Dados de Coleta:")
+
+        y -= 0.7 * cm
+
+        dados = [
+            ("Data da Visita", data_visita),
+            ("Loja", loja_oficial),
+            ("Latitude", str(latitude)),
+            ("Longitude", str(longitude)),
+            ("Loja Abastecida", loja_abastecida),
+            ("Nota", str(nota))
+        ]
+
+        for rotulo, valor in dados:
+            c.setFont("Helvetica-Bold", 9)
+            c.drawString(margem_x, y, f"{rotulo}:")
+            c.setFont("Helvetica", 9)
+            c.drawString(margem_x + 4 * cm, y, valor[:95])
+            y -= 0.55 * cm
+
+        y -= 0.4 * cm
+
+        c.setFont("Helvetica-Bold", 12)
+        c.drawString(margem_x, y, "Registros Fotograficos:")
+
+        y -= 0.8 * cm
+
+        largura_foto = 15.5 * cm
+        altura_foto = 4.4 * cm
+
+        fotos = [
+            ("Foto da fachada", fachada),
+            ("Foto antes do abastecimento", antes),
+            ("Foto depois do abastecimento", depois)
+        ]
+
+        for titulo, url in fotos:
+            c.setFont("Helvetica-Bold", 9)
+            c.drawString(margem_x, y, titulo)
+
+            y -= 0.25 * cm
+
+            desenhar_imagem_pdf(c, url, margem_x, y - altura_foto, largura_foto, altura_foto)
+
+            y -= altura_foto + 0.6 * cm
+
+        c.setFont("Helvetica", 8)
+        c.setFillColor(colors.gray)
+        c.drawCentredString(
+            largura_pagina / 2,
+            1 * cm,
+            "Relatorio gerado automaticamente pelo Painel de Gestao - Merchan PDV"
+        )
+
+        c.showPage()
+
+    c.save()
+    buffer.seek(0)
+
+    return buffer.getvalue()
+
+
+# =========================================================
+# 10. FUNÇÕES DE GEOLOCALIZAÇÃO / ANTIFRAUDE
 # =========================================================
 
 def encontrar_loja_mais_proxima(lat_visita, lon_visita, df_lojas):
-    """Encontra a loja cadastrada mais próxima do GPS da visita."""
     menor_distancia = None
     loja_mais_proxima = None
 
@@ -637,7 +586,6 @@ def encontrar_loja_mais_proxima(lat_visita, lon_visita, df_lojas):
 
 
 def enriquecer_visitas_com_lojas(df_visitas, df_lojas):
-    """Adiciona dados da loja oficial mais próxima em cada visita."""
     registros = []
 
     for _, row in df_visitas.iterrows():
@@ -687,30 +635,10 @@ def enriquecer_visitas_com_lojas(df_visitas, df_lojas):
 
 
 # =========================================================
-# 10. FUNÇÕES DE SLA / FREQUÊNCIA DE ATENDIMENTO
+# 11. FUNÇÕES DE SLA / FREQUÊNCIA DE ATENDIMENTO
 # =========================================================
 
-def definir_periodo_referencia(df, datas_selecionadas):
-    """Define período usado para cálculo de SLA."""
-    if datas_selecionadas:
-        data_inicio = min(datas_selecionadas)
-        data_fim = max(datas_selecionadas)
-    else:
-        datas_disponiveis = sorted(df["today"].dropna().dt.date.unique())
-        if datas_disponiveis:
-            data_inicio = min(datas_disponiveis)
-            data_fim = max(datas_disponiveis)
-        else:
-            hoje = pd.Timestamp.today().date()
-            data_inicio = hoje
-            data_fim = hoje
-
-    dias_periodo = (data_fim - data_inicio).days + 1
-    return data_inicio, data_fim, dias_periodo
-
-
 def calcular_sla_lojas(df_lojas, df_visitas_filtrado, data_inicio, data_fim, dias_periodo):
-    """Calcula SLA por loja conforme frequência e intervalo mínimo."""
     linhas = []
 
     for _, loja in df_lojas.iterrows():
@@ -722,11 +650,12 @@ def calcular_sla_lojas(df_lojas, df_visitas_filtrado, data_inicio, data_fim, dia
         intervalo = loja.get("intervalo_minimo_retorno_dias", 0)
 
         previsto = math.ceil((frequencia / 30) * dias_periodo) if frequencia and dias_periodo > 0 else 0
+
         if previsto == 0 and frequencia > 0:
             previsto = 1
 
         if realizado > 0:
-            ultima_visita = visitas_loja["today"].max().date()
+            ultima_visita = visitas_loja["data_visita"].max()
             dias_sem_atendimento = (data_fim - ultima_visita).days
         else:
             ultima_visita = None
@@ -763,7 +692,7 @@ def calcular_sla_lojas(df_lojas, df_visitas_filtrado, data_inicio, data_fim, dia
 
 
 # =========================================================
-# 11. CARREGAMENTO PRINCIPAL
+# 12. CARREGAMENTO PRINCIPAL
 # =========================================================
 
 df = carregar_dados_kobo()
@@ -778,16 +707,18 @@ if df_lojas.empty:
     st.stop()
 
 # Tratamento de datas vindas do Kobo.
-df["today"] = pd.to_datetime(df.get("today"), errors="coerce")
+# AJUSTE PRINCIPAL:
+# A data de referência do sistema passa a ser a DATA do campo start.
 df["start"] = pd.to_datetime(df.get("start"), errors="coerce")
 df["end"] = pd.to_datetime(df.get("end"), errors="coerce")
+df["data_visita"] = df["start"].dt.date
 
 # Enriquecimento das visitas com loja oficial, distância e status GPS.
 df = enriquecer_visitas_com_lojas(df, df_lojas)
 
 
 # =========================================================
-# 12. FILTROS LATERAIS
+# 13. FILTROS LATERAIS
 # =========================================================
 
 st.sidebar.header("Filtros")
@@ -796,8 +727,8 @@ st.sidebar.header("Filtros")
 # INTERVALO DE DATAS
 # =========================================================
 
-data_min = df["today"].dropna().dt.date.min()
-data_max = df["today"].dropna().dt.date.max()
+data_min = df["data_visita"].dropna().min()
+data_max = df["data_visita"].dropna().max()
 
 intervalo_datas = st.sidebar.date_input(
     "Período da visita",
@@ -813,18 +744,16 @@ intervalo_datas = st.sidebar.date_input(
 
 df_filtros = df.copy()
 
-# Aplica período primeiro
 if isinstance(intervalo_datas, tuple) and len(intervalo_datas) == 2:
 
     data_inicio_filtro, data_fim_filtro = intervalo_datas
 
     df_filtros = df_filtros[
-        (df_filtros["today"].dt.date >= data_inicio_filtro) &
-        (df_filtros["today"].dt.date <= data_fim_filtro)
+        (df_filtros["data_visita"] >= data_inicio_filtro) &
+        (df_filtros["data_visita"] <= data_fim_filtro)
     ]
 
 else:
-
     data_inicio_filtro = data_min
     data_fim_filtro = data_max
 
@@ -832,9 +761,7 @@ else:
 # FILTRO - LOJA INFORMADA PELO PROMOTOR
 # =========================================================
 
-lojas_disponiveis = sorted(
-    df_filtros[CAMPO_LOJA].dropna().unique()
-)
+lojas_disponiveis = sorted(df_filtros[CAMPO_LOJA].dropna().unique())
 
 lojas_selecionadas = st.sidebar.multiselect(
     "Loja informada pelo promotor",
@@ -843,37 +770,24 @@ lojas_selecionadas = st.sidebar.multiselect(
 )
 
 if lojas_selecionadas:
-
-    df_filtros = df_filtros[
-        df_filtros[CAMPO_LOJA].isin(lojas_selecionadas)
-    ]
+    df_filtros = df_filtros[df_filtros[CAMPO_LOJA].isin(lojas_selecionadas)]
 
 # =========================================================
 # FILTRO - STATUS GPS
 # =========================================================
 
-status_gps_lista = sorted(
-    df_filtros["status_gps"].dropna().unique()
-)
+status_gps_lista = sorted(df_filtros["status_gps"].dropna().unique())
 
-status_gps_selecionados = st.sidebar.multiselect(
-    "Status GPS",
-    status_gps_lista
-)
+status_gps_selecionados = st.sidebar.multiselect("Status GPS", status_gps_lista)
 
 if status_gps_selecionados:
-
-    df_filtros = df_filtros[
-        df_filtros["status_gps"].isin(status_gps_selecionados)
-    ]
+    df_filtros = df_filtros[df_filtros["status_gps"].isin(status_gps_selecionados)]
 
 # =========================================================
 # FILTRO - LOJA ABASTECIDA
 # =========================================================
 
-abastecida_lista = sorted(
-    df_filtros[CAMPO_STATUS].dropna().unique()
-)
+abastecida_lista = sorted(df_filtros[CAMPO_STATUS].dropna().unique())
 
 abastecida_selecionados = st.sidebar.multiselect(
     "Loja abastecida",
@@ -882,18 +796,13 @@ abastecida_selecionados = st.sidebar.multiselect(
 )
 
 if abastecida_selecionados:
-
-    df_filtros = df_filtros[
-        df_filtros[CAMPO_STATUS].isin(abastecida_selecionados)
-    ]
+    df_filtros = df_filtros[df_filtros[CAMPO_STATUS].isin(abastecida_selecionados)]
 
 # =========================================================
 # FILTRO INDEPENDENTE - LOJAS CADASTRADAS
 # =========================================================
 
-lojas_cadastradas = sorted(
-    df_lojas["nome_loja"].dropna().unique()
-)
+lojas_cadastradas = sorted(df_lojas["nome_loja"].dropna().unique())
 
 lojas_cadastradas_selecionadas = st.sidebar.multiselect(
     "Lojas cadastradas",
@@ -906,9 +815,7 @@ lojas_cadastradas_selecionadas = st.sidebar.multiselect(
 
 df_filtrado = df_filtros.copy()
 
-# Aplica filtro independente das lojas cadastradas
 if lojas_cadastradas_selecionadas:
-
     df_filtrado = df_filtrado[
         df_filtrado["nome_loja_oficial"].isin(lojas_cadastradas_selecionadas)
     ]
@@ -919,7 +826,6 @@ if lojas_cadastradas_selecionadas:
 
 data_inicio = data_inicio_filtro
 data_fim = data_fim_filtro
-
 dias_periodo = (data_fim - data_inicio).days + 1
 
 # =========================================================
@@ -943,7 +849,6 @@ st.sidebar.markdown("---")
 if st.sidebar.button("📄 Preparar PDF das visitas filtradas"):
 
     with st.spinner("Gerando PDF das visitas filtradas..."):
-
         st.session_state["pdf_visitas"] = gerar_pdf_visitas(df_filtrado)
 
 if "pdf_visitas" in st.session_state:
@@ -955,8 +860,9 @@ if "pdf_visitas" in st.session_state:
         mime="application/pdf"
     )
 
+
 # =========================================================
-# 13. INDICADORES EXECUTIVOS
+# 14. INDICADORES EXECUTIVOS
 # =========================================================
 
 total_visitas = len(df_filtrado)
@@ -983,13 +889,13 @@ with col3:
 with col4:
     st.markdown(f'<div class="metric-card"><h4>Lojas Não Atendidas</h4><h2>{lojas_nao_atendidas}</h2></div>', unsafe_allow_html=True)
 with col5:
-    st.markdown(f'<div class="metric-card"><h4>Cobertura de Lojas</h4><h2>{cobertura_lojas}%</h2></div>',unsafe_allow_html=True)
+    st.markdown(f'<div class="metric-card"><h4>Cobertura de Lojas</h4><h2>{cobertura_lojas}%</h2></div>', unsafe_allow_html=True)
 
 st.markdown("")
 
 
 # =========================================================
-# 14. MAPA COM VALIDAÇÃO GEOGRÁFICA
+# 15. MAPA COM VALIDAÇÃO GEOGRÁFICA
 # =========================================================
 
 mapa = folium.Map(location=[-8.0476, -34.8770], zoom_start=11)
@@ -999,9 +905,7 @@ for _, loja in df_lojas.iterrows():
     id_loja = loja["id_loja"]
     nome_loja = loja["nome_loja"]
 
-    visitas_loja = df_filtrado[
-        df_filtrado["id_loja_oficial"] == id_loja
-    ]
+    visitas_loja = df_filtrado[df_filtrado["id_loja_oficial"] == id_loja]
 
     if len(visitas_loja) == 0:
         cor_loja = "#111827"
@@ -1011,10 +915,7 @@ for _, loja in df_lojas.iterrows():
         texto_status = "Atendida no período"
 
     folium.Circle(
-        location=[
-            float(loja["latitude_loja"]),
-            float(loja["longitude_loja"])
-        ],
+        location=[float(loja["latitude_loja"]), float(loja["longitude_loja"])],
         radius=int(loja["raio_metros"]),
         color=cor_loja,
         fill=True,
@@ -1027,6 +928,7 @@ for _, loja in df_lojas.iterrows():
     ).add_to(mapa)
 
 for _, row in df_filtrado.iterrows():
+
     latitude = row.get("latitude_visita")
     longitude = row.get("longitude_visita")
 
@@ -1035,16 +937,19 @@ for _, row in df_filtrado.iterrows():
 
     loja = nome_bonito(row.get(CAMPO_LOJA, ""))
     usuario = row.get("username", "")
-    data = formatar_data(row.get("today"))
+
+    data = formatar_data(row.get("start"))
     hora_inicio = formatar_hora(row.get("start"))
     hora_fim = formatar_hora(row.get("end"))
     duracao = calcular_duracao(row.get("start"), row.get("end"))
+
     status = nome_bonito(row.get(CAMPO_STATUS, ""))
 
     nome_loja_oficial = row.get("nome_loja_oficial", "")
     distancia = row.get("distancia_metros", "")
     raio_loja = row.get("raio_metros", "")
     status_gps = row.get("status_gps", "")
+
     cor_marcador = "green" if status_gps == "Dentro do raio" else "red"
 
     fachada, antes, depois = extrair_fotos(row)
@@ -1082,28 +987,32 @@ for _, row in df_filtrado.iterrows():
     ).add_to(mapa)
 
     loja_match = df_lojas[df_lojas["id_loja"] == row.get("id_loja_oficial")]
+
     if not loja_match.empty:
         loja_oficial = loja_match.iloc[0]
+
         folium.Circle(
-    location=[
-        float(loja_oficial["latitude_loja"]),
-        float(loja_oficial["longitude_loja"])
-    ],
-    radius=int(loja_oficial["raio_metros"]),
-    color=cor_marcador,
-    fill=True,
-    fill_opacity=0.15,
-    popup=f"Raio permitido - {loja_oficial['nome_loja']}"
-).add_to(mapa)
+            location=[
+                float(loja_oficial["latitude_loja"]),
+                float(loja_oficial["longitude_loja"])
+            ],
+            radius=int(loja_oficial["raio_metros"]),
+            color=cor_marcador,
+            fill=True,
+            fill_opacity=0.15,
+            popup=f"Raio permitido - {loja_oficial['nome_loja']}"
+        ).add_to(mapa)
 
 mapa.save("mapa_visitas.html")
+
 with open("mapa_visitas.html", "r", encoding="utf-8") as f:
     mapa_html = f.read()
+
 html(mapa_html, height=650)
 
 
 # =========================================================
-# 15. TABELA VISUAL COM FOTOS
+# 16. TABELA VISUAL COM FOTOS
 # =========================================================
 
 st.markdown("---")
@@ -1156,7 +1065,7 @@ for _, row in df_filtrado.iterrows():
     if distancia != "" and pd.notna(distancia):
         distancia = int(round(distancia))
 
-    data = formatar_data(row.get("today"))
+    data = formatar_data(row.get("start"))
     hora_inicio = formatar_hora(row.get("start"))
     hora_fim = formatar_hora(row.get("end"))
     duracao = calcular_duracao(row.get("start"), row.get("end"))
@@ -1176,29 +1085,17 @@ for _, row in df_filtrado.iterrows():
     ">
 
         <td style="padding:14px;font-weight:500;">{loja}</td>
-
         <td style="padding:14px;">{loja_oficial}</td>
-
         <td style="padding:14px;" class="{classe_status_gps}">{status_gps}</td>
-
         <td style="padding:14px;">{distancia} m</td>
-
         <td style="padding:14px;">{data}</td>
-
         <td style="padding:14px;">{hora_inicio}</td>
-
         <td style="padding:14px;">{hora_fim}</td>
-
         <td style="padding:14px;font-weight:bold;color:#1E2A78;">{duracao}</td>
-
         <td style="padding:14px;text-align:center;">{img_html(fachada, 110)}</td>
-
         <td style="padding:14px;text-align:center;">{img_html(antes, 110)}</td>
-
         <td style="padding:14px;text-align:center;">{img_html(depois, 110)}</td>
-
         <td style="padding:14px;" class="{classe_abastecida}">{status}</td>
-
         <td style="padding:14px;">{usuario}</td>
 
     </tr>
@@ -1224,14 +1121,16 @@ tabela_html += "</table>"
 
 html(tabela_html, height=600, scrolling=True)
 
+
 # =========================================================
-# 16. DOWNLOAD EXCEL
+# 17. DOWNLOAD EXCEL
 # =========================================================
 
 df_excel = pd.DataFrame(linhas_excel)
 arquivo_excel = gerar_excel(df_excel)
 
 col1, col2, col3 = st.columns([8, 1, 1])
+
 with col3:
     st.download_button(
         label="📥 Baixar Excel",
@@ -1242,7 +1141,7 @@ with col3:
 
 
 # =========================================================
-# 17. TABELA ANALÍTICA ORDENÁVEL
+# 18. TABELA ANALÍTICA ORDENÁVEL
 # =========================================================
 
 st.markdown("---")
@@ -1254,24 +1153,24 @@ with st.expander("📊 Tabela Analítica", expanded=False):
     estilo_analitico = (
         df_analitico.style
         .set_properties(**{
-            'text-align': 'center',
-            'font-weight': 'normal'
+            "text-align": "center",
+            "font-weight": "normal"
         })
         .set_table_styles([
             {
-                'selector': 'th',
-                'props': [
-                    ('text-align', 'center'),
-                    ('font-weight', 'bold'),
-                    ('color', 'black'),
-                    ('background-color', '#F3F4F6')
+                "selector": "th",
+                "props": [
+                    ("text-align", "center"),
+                    ("font-weight", "bold"),
+                    ("color", "black"),
+                    ("background-color", "#F3F4F6")
                 ]
             },
             {
-                'selector': 'td',
-                'props': [
-                    ('text-align', 'center'),
-                    ('font-weight', 'normal')
+                "selector": "td",
+                "props": [
+                    ("text-align", "center"),
+                    ("font-weight", "normal")
                 ]
             }
         ])
@@ -1285,7 +1184,7 @@ with st.expander("📊 Tabela Analítica", expanded=False):
 
 
 # =========================================================
-# 18. SLA DAS LOJAS
+# 19. SLA DAS LOJAS
 # =========================================================
 
 st.markdown("---")
@@ -1305,24 +1204,24 @@ with st.expander("📌 SLA de Atendimento das Lojas", expanded=False):
     estilo_sla = (
         df_sla_exibicao.style
         .set_properties(**{
-            'text-align': 'center',
-            'font-weight': 'normal'
+            "text-align": "center",
+            "font-weight": "normal"
         })
         .set_table_styles([
             {
-                'selector': 'th',
-                'props': [
-                    ('text-align', 'center'),
-                    ('font-weight', 'bold'),
-                    ('color', 'black'),
-                    ('background-color', '#F3F4F6')
+                "selector": "th",
+                "props": [
+                    ("text-align", "center"),
+                    ("font-weight", "bold"),
+                    ("color", "black"),
+                    ("background-color", "#F3F4F6")
                 ]
             },
             {
-                'selector': 'td',
-                'props': [
-                    ('text-align', 'center'),
-                    ('font-weight', 'normal')
+                "selector": "td",
+                "props": [
+                    ("text-align", "center"),
+                    ("font-weight", "normal")
                 ]
             }
         ])
@@ -1333,5 +1232,3 @@ with st.expander("📌 SLA de Atendimento das Lojas", expanded=False):
         use_container_width=True,
         hide_index=True
     )
-
-
