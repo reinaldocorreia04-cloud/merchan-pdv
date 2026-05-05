@@ -1,0 +1,7 @@
+﻿id_loja,rede,nome_loja,estado,cidade,bairro,endereco,latitude_loja,longitude_loja,raio_metros,frequencia_mensal_prevista,intervalo_minimo_retorno_dias,status
+ATACADAO_001,Atacadão,Atacadão Recife,PE,Recife,Casa Amarela,Recife - PE,-8.0278453,-34.9106903,120,4,7,ativo
+ASSAI_001,Assaí,Assaí Recife Norte,PE,Recife,Casa Amarela,"Av. Norte, Recife - PE",-8.0259,-34.9235,120,6,5,ativo
+MIX_MATHEUS_001,Mix Matheus,Mix Matheus Recife,PE,Recife,Parnamirim,"Parnamirim, Recife - PE",-8.0352,-34.9127,100,4,7,ativo
+CARREFOUR_001,Carrefour,Carrefour Torre,PE,Recife,Torre,"Torre, Recife - PE",-8.0468,-34.9121,100,4,7,ativo
+DESKONTAO_001,Deskontão,Deskontão Casa Amarela,PE,Recife,Casa Amarela,"Casa Amarela, Recife - PE",-8.0209,-34.918,90,4,7,ativo
+NOVO_ATACAREJO_001,Novo Atacarejo,Novo Atacarejo Recife,PE,Recife,Arruda,"Arruda, Recife - PE",-8.0289,-34.8907,130,6,5,ativo
