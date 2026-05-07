@@ -1,3 +1,4 @@
+
 # =========================================================
 # PAINEL DE GESTÃO - MERCHAN PDV
 # KoboToolbox + Streamlit + Folium + Base de Lojas + SLA
@@ -1232,3 +1233,4 @@ with st.expander("📌 SLA de Atendimento das Lojas", expanded=False):
         use_container_width=True,
         hide_index=True
     )
+st.markdown("### Desenvolvido by Reinaldo 🚀")
