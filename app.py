@@ -93,16 +93,7 @@ if authentication_status is False:
     st.stop()
 
 if authentication_status:
-    authenticator.logout("Sair", "sidebar")
-
-if authentication_status is False:
-    st.error("Usuário ou senha inválidos")
-
-if authentication_status is None:
-    st.warning("Informe usuário e senha")
-
-if authentication_status:
-
+    
     authenticator.logout("Sair", "sidebar")
 
     st.sidebar.success(f"Bem-vindo {name}")
