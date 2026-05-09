@@ -74,6 +74,7 @@ def tela_login():
 
     st.markdown("""
     <style>
+
     .stApp {
         background: #F8FAFC;
     }
@@ -83,23 +84,25 @@ def tela_login():
     }
 
     .block-container {
-        padding-top: 4rem;
-        max-width: 760px;
+        padding-top: 3rem;
+        max-width: 650px;
     }
 
-    .login-card {
+    .login-box {
         background: white;
-        padding: 45px 60px 30px 60px;
+        padding: 45px;
         border-radius: 18px;
-        box-shadow: 0 12px 35px rgba(15, 23, 42, 0.12);
+        box-shadow: 0 10px 35px rgba(0,0,0,0.10);
         border: 1px solid #E5E7EB;
+    }
+
+    .login-top {
         text-align: center;
-        margin-bottom: 25px;
+        margin-bottom: 35px;
     }
 
     .login-icon {
-        font-size: 58px;
-        color: #059669;
+        font-size: 55px;
         margin-bottom: 10px;
     }
 
@@ -107,94 +110,107 @@ def tela_login():
         font-size: 34px;
         font-weight: 800;
         color: #111827;
-        margin-bottom: 8px;
+        margin-bottom: 10px;
     }
 
     .login-subtitle {
-        font-size: 18px;
         color: #64748B;
-        margin-bottom: 28px;
-    }
-
-    .login-line {
-        height: 1px;
-        background: #E5E7EB;
-        margin: 25px 0;
+        font-size: 18px;
     }
 
     div[data-testid="stTextInput"] label {
+        font-size: 16px;
         font-weight: 700;
         color: #111827;
-        font-size: 16px;
     }
 
     div[data-testid="stTextInput"] input {
-        height: 54px;
+        height: 52px;
         border-radius: 10px;
         border: 1px solid #CBD5E1;
         font-size: 16px;
-        padding-left: 14px;
     }
 
     div[data-testid="stButton"] button {
-        height: 56px;
-        border-radius: 10px;
-        background: linear-gradient(90deg, #059669, #047857);
+        background: linear-gradient(90deg,#059669,#047857);
         color: white;
         border: none;
+        height: 54px;
+        border-radius: 10px;
         font-size: 18px;
         font-weight: 700;
-        margin-top: 14px;
+        margin-top: 12px;
     }
 
     div[data-testid="stButton"] button:hover {
-        background: linear-gradient(90deg, #047857, #065F46);
+        background: linear-gradient(90deg,#047857,#065F46);
         color: white;
-        border: none;
     }
 
-    .login-footer {
+    .footer-login {
         text-align: center;
         color: #64748B;
-        font-size: 15px;
-        margin-top: 22px;
+        margin-top: 20px;
+        font-size: 14px;
     }
+
     </style>
     """, unsafe_allow_html=True)
 
-    st.markdown("""
-    <div class="login-card">
-        <div class="login-icon">📈</div>
-        <div class="login-title">Acesso ao Sistema</div>
-        <div class="login-subtitle">Informe seu usuário e senha para acessar</div>
-        <div class="login-line"></div>
-    """, unsafe_allow_html=True)
+    col1, col2, col3 = st.columns([1,2,1])
 
-    usuario = st.text_input("Usuário", placeholder="Digite seu usuário")
-    senha = st.text_input("Senha", type="password", placeholder="Digite sua senha")
+    with col2:
 
-    if st.button("Entrar", use_container_width=True):
+        st.markdown("""
+        <div class="login-box">
 
-        usuario_correto = st.secrets["USUARIO_APP"]
-        senha_correta = st.secrets["SENHA_APP"]
+            <div class="login-top">
+                <div class="login-icon">📈</div>
 
-        if usuario == usuario_correto and senha == senha_correta:
-            st.session_state["logado"] = True
-            st.rerun()
-        else:
-            st.error("Usuário ou senha inválidos.")
+                <div class="login-title">
+                    Acesso ao Sistema
+                </div>
 
-    st.markdown("""
-        <div class="login-line"></div>
-        <div class="login-footer">🔒 Acesso restrito</div>
-    </div>
-    """, unsafe_allow_html=True)
+                <div class="login-subtitle">
+                    Informe seu usuário e senha para acessar
+                </div>
+            </div>
+        """, unsafe_allow_html=True)
+
+        usuario = st.text_input(
+            "Usuário",
+            placeholder="Digite seu usuário"
+        )
+
+        senha = st.text_input(
+            "Senha",
+            type="password",
+            placeholder="Digite sua senha"
+        )
+
+        if st.button("Entrar", use_container_width=True):
+
+            usuario_correto = st.secrets["USUARIO_APP"]
+            senha_correta = st.secrets["SENHA_APP"]
+
+            if usuario == usuario_correto and senha == senha_correta:
+                st.session_state["logado"] = True
+                st.rerun()
+            else:
+                st.error("Usuário ou senha inválidos.")
+
+        st.markdown("""
+            <div class="footer-login">
+                🔒 Acesso restrito
+            </div>
+
+        </div>
+        """, unsafe_allow_html=True)
 
     st.stop()
 
 
 tela_login()
-
 #==========================================================
 # Atualização automática a cada 30 minutos.
 st_autorefresh(interval=1800000, key="refresh")
