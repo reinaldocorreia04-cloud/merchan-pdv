@@ -55,6 +55,40 @@ st.set_page_config(
     page_title="Painel de Gestão - Merchan PDV",
     layout="wide"
 )
+# =========================================================
+# LOGIN DO SISTEMA
+# =========================================================
+
+def tela_login():
+    if "logado" not in st.session_state:
+        st.session_state["logado"] = False
+
+    if st.session_state["logado"]:
+        with st.sidebar:
+            if st.button("Sair"):
+                st.session_state["logado"] = False
+                st.rerun()
+        return True
+
+    st.markdown("## 🔐 Acesso ao Sistema")
+    st.markdown("Informe usuário e senha para acessar o painel.")
+
+    usuario = st.text_input("Usuário")
+    senha = st.text_input("Senha", type="password")
+
+    if st.button("Entrar"):
+        usuario_correto = st.secrets["USUARIO_APP"]
+        senha_correta = st.secrets["SENHA_APP"]
+
+        if usuario == usuario_correto and senha == senha_correta:
+            st.session_state["logado"] = True
+            st.rerun()
+        else:
+            st.error("Usuário ou senha inválidos.")
+
+    st.stop()
+
+tela_login()
 
 # Atualização automática a cada 30 minutos.
 st_autorefresh(interval=1800000, key="refresh")
@@ -1233,3 +1267,4 @@ with st.expander("📌 SLA de Atendimento das Lojas", expanded=False):
         use_container_width=True,
         hide_index=True
     )
+st.markdown("### Desenvolvido by Reinaldo 🚀")
