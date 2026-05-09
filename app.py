@@ -70,29 +70,113 @@ def tela_login():
                 st.rerun()
         return True
 
-    st.markdown("## 🔐 Acesso ao Sistema")
-    st.markdown("Informe usuário e senha para acessar o painel.")
+    st.markdown("""
+    <style>
+    .stApp {
+        background: linear-gradient(135deg, #EEF4FF 0%, #F8FBFF 50%, #EAF1FF 100%);
+    }
 
-    usuario = st.text_input("Usuário")
-    senha = st.text_input("Senha", type="password")
+    div[data-testid="stHeader"] {
+        background: transparent;
+    }
 
-    if st.button("Entrar"):
-        usuario_correto = st.secrets["USUARIO_APP"]
-        senha_correta = st.secrets["SENHA_APP"]
+    .login-container {
+        max-width: 520px;
+        margin: 80px auto 0 auto;
+        background: white;
+        padding: 42px 46px;
+        border-radius: 24px;
+        box-shadow: 0 18px 45px rgba(30, 42, 120, 0.16);
+        text-align: center;
+        border: 1px solid rgba(30, 42, 120, 0.08);
+    }
 
-        if usuario == usuario_correto and senha == senha_correta:
-            st.session_state["logado"] = True
-            st.rerun()
-        else:
-            st.error("Usuário ou senha inválidos.")
+    .login-logo {
+        font-size: 42px;
+        margin-bottom: 10px;
+    }
+
+    .login-title {
+        font-size: 30px;
+        font-weight: 800;
+        color: #1E2A78;
+        margin-bottom: 4px;
+    }
+
+    .login-subtitle {
+        font-size: 18px;
+        color: #2563EB;
+        font-weight: 600;
+        margin-bottom: 28px;
+    }
+
+    .login-icon {
+        width: 72px;
+        height: 72px;
+        border-radius: 50%;
+        background: #EEF4FF;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 20px auto;
+        font-size: 34px;
+    }
+
+    .login-footer {
+        text-align: center;
+        color: #64748B;
+        margin-top: 26px;
+        font-size: 14px;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+    st.markdown("""
+    <div class="login-container">
+        <div class="login-logo">📊</div>
+        <div class="login-title">Painel de Gestão</div>
+        <div class="login-subtitle">Merchan PDV</div>
+        <div class="login-icon">🔐</div>
+        <h2 style="color:#111827;margin-bottom:8px;">Acesso ao Sistema</h2>
+        <p style="color:#475569;margin-bottom:26px;">
+            Informe seu usuário e senha para acessar o painel.
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    col1, col2, col3 = st.columns([1.3, 1.4, 1.3])
+
+    with col2:
+        usuario = st.text_input("Usuário", placeholder="Digite seu usuário")
+        senha = st.text_input("Senha", type="password", placeholder="Digite sua senha")
+
+        if st.button("Entrar", use_container_width=True):
+            usuario_correto = st.secrets["USUARIO_APP"]
+            senha_correta = st.secrets["SENHA_APP"]
+
+            if usuario == usuario_correto and senha == senha_correta:
+                st.session_state["logado"] = True
+                st.rerun()
+            else:
+                st.error("Usuário ou senha inválidos.")
+
+        st.markdown(
+            '<div class="login-footer">🔒 Acesso restrito. Dados protegidos.<br><br>Desenvolvido by Reinaldo 🚀</div>',
+            unsafe_allow_html=True
+        )
 
     st.stop()
 
 tela_login()
 
+
+
+#==========================================================
 # Atualização automática a cada 30 minutos.
 st_autorefresh(interval=1800000, key="refresh")
 
+
+#==========================================================
 # Botão para atualização manual.
 if st.button("🔄 Atualizar agora"):
     st.cache_data.clear()
