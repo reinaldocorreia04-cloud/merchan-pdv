@@ -56,6 +56,7 @@ st.set_page_config(
     page_title="Painel de Gestão - Merchan PDV",
     layout="wide"
 )
+
 # =========================================================
 # LOGIN
 # =========================================================
@@ -79,7 +80,7 @@ authenticator = stauth.Authenticate(
     cookie_expiry_days=1
 )
 
-name, authentication_status, username = authenticator.login(
+authentication_status = authenticator.login(
     location="main",
     fields={
         "Form name": "Acesso ao Sistema",
@@ -98,10 +99,10 @@ if authentication_status is False:
     st.stop()
 
 if authentication_status:
-    
+
     authenticator.logout("Sair", "sidebar")
 
-    st.sidebar.success(f"Bem-vindo {name}")
+    st.sidebar.success("Bem-vindo, Administrador")
 
 #==========================================================
 # Atualização automática a cada 30 minutos.
