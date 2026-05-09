@@ -139,7 +139,7 @@ def tela_login():
     div[data-testid="stButton"] button {
         height: 56px;
         border-radius: 10px;
-        background: linear-gradient(90deg, #059669, #047857);
+        background: linear-gradient(90deg,#2563EB,#1D4ED8);
         color: white;
         border: none;
         font-size: 18px;
@@ -148,7 +148,7 @@ def tela_login():
     }
 
     div[data-testid="stButton"] button:hover {
-        background: linear-gradient(90deg, #047857, #065F46);
+        background: linear-gradient(90deg,#1D4ED8,#1E40AF);
         color: white;
         border: none;
     }
