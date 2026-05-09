@@ -81,8 +81,19 @@ authenticator = stauth.Authenticate(
 
 name, authentication_status, username = authenticator.login(
     "Login",
-    "main"
+    "unrendered"
 )
+
+if authentication_status is None:
+    st.warning("Informe usuário e senha.")
+    st.stop()
+
+if authentication_status is False:
+    st.error("Usuário ou senha inválidos.")
+    st.stop()
+
+if authentication_status:
+    authenticator.logout("Sair", "sidebar")
 
 if authentication_status is False:
     st.error("Usuário ou senha inválidos")
