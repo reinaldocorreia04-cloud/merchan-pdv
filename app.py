@@ -63,7 +63,7 @@ st.set_page_config(
 names = ["Administrador"]
 usernames = ["admin"]
 
-hashed_passwords = stauth.Hasher(["123456"]).generate()
+hashed_passwords = [stauth.Hasher.hash("123456")]
 
 authenticator = stauth.Authenticate(
     {
