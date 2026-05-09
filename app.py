@@ -80,8 +80,13 @@ authenticator = stauth.Authenticate(
 )
 
 name, authentication_status, username = authenticator.login(
-    "Login",
-    "unrendered"
+    location="main",
+    fields={
+        "Form name": "Acesso ao Sistema",
+        "Username": "Usuário",
+        "Password": "Senha",
+        "Login": "Entrar"
+    }
 )
 
 if authentication_status is None:
