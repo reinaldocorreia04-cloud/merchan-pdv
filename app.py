@@ -18,7 +18,6 @@ import math
 import pandas as pd
 import requests
 import streamlit as st
-import streamlit_authenticator as stauth
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import cm
 from reportlab.lib import colors
