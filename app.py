@@ -58,51 +58,143 @@ st.set_page_config(
 )
 
 # =========================================================
-# LOGIN
+# LOGIN DO SISTEMA
 # =========================================================
 
-names = ["Administrador"]
-usernames = ["admin"]
+def tela_login():
 
-hashed_passwords = [stauth.Hasher.hash("123456")]
+    if "logado" not in st.session_state:
+        st.session_state["logado"] = False
 
-authenticator = stauth.Authenticate(
-    {
-        "usernames": {
-            usernames[0]: {
-                "name": names[0],
-                "password": hashed_passwords[0]
-            }
-        }
-    },
-    "painel_merchan",
-    "abcdef",
-    cookie_expiry_days=1
-)
+    if st.session_state["logado"]:
+        with st.sidebar:
+            if st.button("Sair"):
+                st.session_state["logado"] = False
+                st.rerun()
+        return True
 
-authentication_status = authenticator.login(
-    location="main",
-    fields={
-        "Form name": "Acesso ao Sistema",
-        "Username": "Usuário",
-        "Password": "Senha",
-        "Login": "Entrar"
+    st.markdown("""
+    <style>
+    .stApp {
+        background: #F8FAFC;
     }
-)
 
-if authentication_status is None:
-    st.warning("Informe usuário e senha.")
+    div[data-testid="stHeader"] {
+        background: transparent;
+    }
+
+    .block-container {
+        padding-top: 4rem;
+        max-width: 760px;
+    }
+
+    .login-card {
+        background: white;
+        padding: 45px 60px 30px 60px;
+        border-radius: 18px;
+        box-shadow: 0 12px 35px rgba(15, 23, 42, 0.12);
+        border: 1px solid #E5E7EB;
+        text-align: center;
+        margin-bottom: 25px;
+    }
+
+    .login-icon {
+        font-size: 58px;
+        color: #059669;
+        margin-bottom: 10px;
+    }
+
+    .login-title {
+        font-size: 34px;
+        font-weight: 800;
+        color: #111827;
+        margin-bottom: 8px;
+    }
+
+    .login-subtitle {
+        font-size: 18px;
+        color: #64748B;
+        margin-bottom: 28px;
+    }
+
+    .login-line {
+        height: 1px;
+        background: #E5E7EB;
+        margin: 25px 0;
+    }
+
+    div[data-testid="stTextInput"] label {
+        font-weight: 700;
+        color: #111827;
+        font-size: 16px;
+    }
+
+    div[data-testid="stTextInput"] input {
+        height: 54px;
+        border-radius: 10px;
+        border: 1px solid #CBD5E1;
+        font-size: 16px;
+        padding-left: 14px;
+    }
+
+    div[data-testid="stButton"] button {
+        height: 56px;
+        border-radius: 10px;
+        background: linear-gradient(90deg, #059669, #047857);
+        color: white;
+        border: none;
+        font-size: 18px;
+        font-weight: 700;
+        margin-top: 14px;
+    }
+
+    div[data-testid="stButton"] button:hover {
+        background: linear-gradient(90deg, #047857, #065F46);
+        color: white;
+        border: none;
+    }
+
+    .login-footer {
+        text-align: center;
+        color: #64748B;
+        font-size: 15px;
+        margin-top: 22px;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+    st.markdown("""
+    <div class="login-card">
+        <div class="login-icon">📈</div>
+        <div class="login-title">Acesso ao Sistema</div>
+        <div class="login-subtitle">Informe seu usuário e senha para acessar</div>
+        <div class="login-line"></div>
+    """, unsafe_allow_html=True)
+
+    usuario = st.text_input("Usuário", placeholder="Digite seu usuário")
+    senha = st.text_input("Senha", type="password", placeholder="Digite sua senha")
+
+    if st.button("Entrar", use_container_width=True):
+
+        usuario_correto = st.secrets["USUARIO_APP"]
+        senha_correta = st.secrets["SENHA_APP"]
+
+        if usuario == usuario_correto and senha == senha_correta:
+            st.session_state["logado"] = True
+            st.rerun()
+        else:
+            st.error("Usuário ou senha inválidos.")
+
+    st.markdown("""
+        <div class="login-line"></div>
+        <div class="login-footer">🔒 Acesso restrito</div>
+    </div>
+    """, unsafe_allow_html=True)
+
     st.stop()
 
-if authentication_status is False:
-    st.error("Usuário ou senha inválidos.")
-    st.stop()
 
-if authentication_status:
-
-    authenticator.logout("Sair", "sidebar")
-
-    st.sidebar.success("Bem-vindo, Administrador")
+tela_login()
 
 #==========================================================
 # Atualização automática a cada 30 minutos.
