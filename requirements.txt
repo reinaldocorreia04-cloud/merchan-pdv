@@ -7,3 +7,4 @@ geopy
 openpyxl
 reportlab
 pillow
+streamlit-authenticator
