@@ -18,6 +18,7 @@ import math
 import pandas as pd
 import requests
 import streamlit as st
+import streamlit_authenticator as stauth
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import cm
 from reportlab.lib import colors
@@ -56,169 +57,44 @@ st.set_page_config(
     layout="wide"
 )
 # =========================================================
-# LOGIN DO SISTEMA
+# LOGIN
 # =========================================================
 
-def tela_login():
+names = ["Administrador"]
+usernames = ["admin"]
 
-    if "logado" not in st.session_state:
-        st.session_state["logado"] = False
+hashed_passwords = stauth.Hasher(["123456"]).generate()
 
-    if st.session_state["logado"]:
-        with st.sidebar:
-            if st.button("Sair"):
-                st.session_state["logado"] = False
-                st.rerun()
-        return True
+authenticator = stauth.Authenticate(
+    {
+        "usernames": {
+            usernames[0]: {
+                "name": names[0],
+                "password": hashed_passwords[0]
+            }
+        }
+    },
+    "painel_merchan",
+    "abcdef",
+    cookie_expiry_days=1
+)
 
-    st.markdown("""
-    <style>
+name, authentication_status, username = authenticator.login(
+    "Login",
+    "main"
+)
 
-    .stApp {
-        background: linear-gradient(135deg, #EEF4FF 0%, #F7FAFF 100%);
-    }
+if authentication_status is False:
+    st.error("Usuário ou senha inválidos")
 
-    div[data-testid="stHeader"] {
-        background: transparent;
-    }
+if authentication_status is None:
+    st.warning("Informe usuário e senha")
 
-    section.main > div {
-        max-width: 100% !important;
-        padding-top: 0rem;
-    }
+if authentication_status:
 
-    .login-box {
-        width: 480px;
-        margin: 60px auto;
-        background: white;
-        padding: 45px;
-        border-radius: 24px;
-        box-shadow: 0 10px 35px rgba(0,0,0,0.12);
-    }
+    authenticator.logout("Sair", "sidebar")
 
-    .titulo {
-        text-align: center;
-        font-size: 34px;
-        font-weight: 800;
-        color: #14213D;
-        margin-bottom: 0;
-    }
-
-    .subtitulo {
-        text-align: center;
-        color: #2563EB;
-        font-size: 18px;
-        margin-bottom: 30px;
-        font-weight: 600;
-    }
-
-    .icone {
-        text-align: center;
-        font-size: 55px;
-        margin-bottom: 15px;
-    }
-
-    .texto-login {
-        text-align: center;
-        margin-bottom: 30px;
-    }
-
-    .texto-login h2 {
-        color: #111827;
-        margin-bottom: 10px;
-    }
-
-    .texto-login p {
-        color: #64748B;
-        font-size: 15px;
-    }
-
-    div[data-testid="stTextInput"] input {
-        border-radius: 12px;
-        height: 50px;
-        border: 1px solid #D1D5DB;
-        padding-left: 12px;
-    }
-
-    div[data-testid="stButton"] button {
-        background: linear-gradient(90deg, #2563EB, #1D4ED8);
-        color: white;
-        border: none;
-        border-radius: 12px;
-        height: 50px;
-        font-size: 18px;
-        font-weight: 600;
-    }
-
-    div[data-testid="stButton"] button:hover {
-        background: linear-gradient(90deg, #1D4ED8, #1E40AF);
-        color: white;
-    }
-
-    .footer-login {
-        text-align: center;
-        color: #64748B;
-        margin-top: 20px;
-        font-size: 14px;
-    }
-
-    </style>
-    """, unsafe_allow_html=True)
-
-    st.markdown("""
-    <div class="login-box">
-
-        <div class="icone">📊</div>
-
-        <div class="titulo">
-            Painel de Gestão
-        </div>
-
-        <div class="subtitulo">
-            Merchan PDV
-        </div>
-
-        <div class="texto-login">
-            <h2>🔐 Acesso ao Sistema</h2>
-            <p>Informe seu usuário e senha para acessar o painel.</p>
-        </div>
-
-    """, unsafe_allow_html=True)
-
-    usuario = st.text_input(
-        "Usuário",
-        placeholder="Digite seu usuário"
-    )
-
-    senha = st.text_input(
-        "Senha",
-        type="password",
-        placeholder="Digite sua senha"
-    )
-
-    if st.button("Entrar", use_container_width=True):
-
-        usuario_correto = st.secrets["USUARIO_APP"]
-        senha_correta = st.secrets["SENHA_APP"]
-
-        if usuario == usuario_correto and senha == senha_correta:
-            st.session_state["logado"] = True
-            st.rerun()
-        else:
-            st.error("Usuário ou senha inválidos.")
-
-    st.markdown("""
-        <div class="footer-login">
-            🔒 Acesso restrito. Dados protegidos.<br><br>
-            Desenvolvido by ReiTec Soluções Inteligentes 🚀
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-
-    st.stop()
-
-tela_login()
-
+    st.sidebar.success(f"Bem-vindo {name}")
 
 #==========================================================
 # Atualização automática a cada 30 minutos.
